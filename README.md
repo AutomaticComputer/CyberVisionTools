@@ -1,17 +1,18 @@
 # CyberVision Tools
 
-Python scripts for manipulating cassette tape data (etc.) for CyberVision. 
+Python scripts for manipulating cassette tape data (etc.) for CyberVision 2001. 
 
   - [Decompose Cassette](#decompose-cassette)
   - [Compose Cassette](#compose-cassette)
   - [Configuration file](#configuration-file)
-  - [Serial2bin](#serial2binpy)
+  - [Serial2bin](#serial2bin)
   - [Recovering data](#recovering-data)
   - [A sample program](#a-sample-program)
 
 ## Decompose Cassette
 
-Decompose a wav file into audio track (if any), a series of text files and a configuration file. 
+"cybervision_decompose_cassette.py"
+decomposes a wav file into an audio track (if any), a series of text files and a configuration file. 
 
 
 ### Usage
@@ -26,12 +27,13 @@ With "-i" option, the phase is inverted.
 If the wav file is stereo (i.e. has 2 channels), 
 the left track is output as ```(basename)_audio.wav```.
 
-From the data track, each continuous block of bits are written as 
-```(basename)_nnn.txt```, where nnn are serial numbers starting with 000. 
+From the data track, each continuous block of bits is written as 
+```(basename)_nnn.txt```, where nnn is the serial number starting with 000. 
 This is a text file expressing the bits with `0` and `1`. 
 
-A text file ```(basename)_out.cfg``` 
-containing the information of the cassette is also output. 
+Finally, a text file ```(basename)_out.cfg``` is generated, 
+which contains the information of the cassette and can be used as an input for 
+cybervision_compose_cassette.py. 
 See [Configuration file](#configuration-file) for the format of this file. 
 
 A warning is given if the gap between blocks is too short 
@@ -41,7 +43,8 @@ A warning is given if the gap between blocks is too short
 
 ## Compose Cassette
 
-Create a wav file to be used with CyberVision. 
+"cybervision_compose_cassette.py" creates a wav file to be used with CyberVision. 
+Caution: this is SLOW. 
 
 ### Usage
 
@@ -56,8 +59,8 @@ according to the configuration file.
 
 ## Configuration file
 
-A configuration file consists of lines. 
-For each line, anything after the first 2 words are ignored. 
+Each line of a configuration file is a command. 
+In each line, anything after the first 2 words are ignored. 
 
 ```
 C (n)
@@ -75,12 +78,13 @@ A (filename)
 
 Use ```(filename)``` as the audio track. 
 This should be used only once at the beginning. 
+The number of channels, framerate, and sample width are overridden. 
 
 ```
 T (x)
 ```
 
-Skip to time ```(x)``` (a floating point number). 
+Skip to time ```(x)``` (a floating point number, in seconds). 
 
 ```
 S (filename)
@@ -97,7 +101,7 @@ B (filename)
 ```
 
 Write binary data from ```(filename)```. 
-A start bit (1) and a stop bit (0) are added at the beginning and the end. 
+A start bit (1) and a stop bit (0) are added at the beginning and the end of each byte. 
 
 
 ## Serial2bin
@@ -119,7 +123,7 @@ which is given by adding a newline before each start bit.
 
 If cybervision_decompose_cassette.py could not read the data correctly, 
 it is often because of level drops. 
-Then, typically, warnings are given. 
+Then, typically, the script gives warnings. 
 
 Locating this by an application like Audacity, 
 reading the correct value and fixing the ''serial file'' manually 
