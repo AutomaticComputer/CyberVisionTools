@@ -38,7 +38,11 @@ See [Configuration file](#configuration-file) for the format of this file.
 
 A warning is given if the gap between blocks is too short 
 (which might mean that the data was corrupt). 
-(If many warning are given, it might be because the phase is inverted.)
+
+If the script gives many warnings or incorrect output, it might be because... 
+- The threshold for amplitude is too high or low. 
+Change "amplitude_threshold = 0.02" to an appropriate value. 
+- The phase is inverted. Use "-i" option. 
 
 
 ## Compose Cassette

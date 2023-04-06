@@ -3,7 +3,7 @@ import wave
 import math
 
 # constants
-amplitude_threshold = 0.02
+amplitude_threshold = 0.05
 width0_threshold = 1/5000
 width1_threshold = 1/3000
 width2_threshold = 1/1000
