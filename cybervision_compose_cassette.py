@@ -7,7 +7,7 @@ amplitude_max = 0.5
 amplitude_tail = 0.2
 freq0 = 4000
 freq1 = 2000
-period = 1/2000
+period = 1/freq1
 
 # default values
 nchannels = 1
@@ -23,8 +23,9 @@ write_started = False
 
 data_written = False
 
-t = 0
+# t: the number of frames from the beginning of the file.
 
+t = 0
 
 def write_sample(x):
     global t, wav_write, wav_read, nframes_r, nchannels, write_buf, write_started
@@ -85,7 +86,9 @@ for line in lines:
         s = serial_file.read()
         serial_file.close()
 
+# i: the number of characters read from the file.
         i = 0
+# j: the number of bits written in this block.
         j = 0
         t_beginning = t
         while(i < len(s)):
@@ -108,8 +111,10 @@ for line in lines:
         s = bin_file.read()
         bin_file.close()
 
+# j: the number of bits written in this block.
         j = 0
         t_beginning = t
+# i: the number of bytes read from the file.
         for i in range(0, len(s)):
             for b in range(0, 10):
                 if b == 0:

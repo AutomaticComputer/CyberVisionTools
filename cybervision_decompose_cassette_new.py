@@ -1,11 +1,11 @@
 # Options: 
 # -a (float): set amplitude_threshold
+# -w (float): set u26b_width
 # -g (float): set gap_threshold
-# -i: invert
+# -q: set initial value of u25b to 1
 # -f (float): apply high-pass filter with a highpass_factor
 #   larger highpass_factor gives lower cutoff frequency
 #   1-4 might be reasonable values
-
 
 import sys
 import wave
@@ -13,15 +13,11 @@ import math
 
 # constants
 amplitude_threshold = 0.05
-width0_threshold = 1/5000
-width1_threshold = 1/3000
-width2_threshold = 1/1000
+u26b_width = 1/6000
 gap_threshold = 0.1
-
-is_inverse = False
-
-last_end_t = -1
-
+u25a_q = 0
+u25b_q = 0
+u26b_q = 0
 highpass = False
 
 dc = 0
@@ -30,14 +26,17 @@ dc_coeff = 0
 arg_i = 0
 
 while arg_i < len(sys.argv):
-    if sys.argv[1] == "-i":
-        is_inverse = True
     if sys.argv[arg_i] == "-a":
         arg_i += 1
         amplitude_threshold = float(sys.argv[arg_i])
+    if sys.argv[arg_i] == "-w":
+        arg_i += 1
+        u26b_width = float(sys.argv[arg_i])
     if sys.argv[arg_i] == "-g":
         arg_i += 1
         gap_threshold = float(sys.argv[arg_i])
+    if sys.argv[arg_i] == "-q":
+        u25b_q = 1
     if sys.argv[arg_i] == "-f":
         highpass = True
         arg_i += 1
@@ -57,6 +56,7 @@ sampwidth = wav_read.getsampwidth()
 if highpass:
     dc_coeff = 2000/highpass_factor/framerate
 
+
 print("C", nchannels, file = cfg_file)
 
 if nchannels == 2:
@@ -70,19 +70,28 @@ else:
     print("F", framerate, file = cfg_file)
     print("W", sampwidth, file = cfg_file)
 
-is_negative = True
-last_t = 0
-wave_count = 0
+# if the last value (after highpass filter) was negative
+was_negative = True
+# the time u26b rose
+u26b_t = 0
+# the max of the abs of amplitude in this wave
 amp_max = 0
-is_in_bit0 = False
 
+# the end of the last block. negative if never set. 
+last_end_t = -1
+
+# whether in a block of consecutive bits
 is_in_block = False
+# the beginning of the block
 start_block_t = 0
 
+# the number of blocks already written
 block_count = 0
 
 def write_bit(b):
-    global last_end_t, is_in_block, start_block_t, framerate, cfg_file, block_count, serial_file
+    global t, last_end_t, is_in_block, start_block_t, framerate, cfg_file, block_count, serial_file
+    if (t - last_end_t)/framerate > 1/1000:
+        is_in_block = False
     if not is_in_block:
         if block_count > 0:
             serial_file.close()
@@ -102,6 +111,7 @@ def write_bit(b):
         serial_file.write('1')
     last_end_t = t
 
+first_transition = True
 
 for t in range(0, nframes):
     c = wav_read.readframes(1)
@@ -114,40 +124,36 @@ for t in range(0, nframes):
     if nchannels == 2:
         wav_write.writeframes(c[0: sampwidth])
     amp = value / (1 << (8*sampwidth - 1))
-    if is_inverse:
-        amp = -amp
     if highpass:
         dc = (1 - dc_coeff) * dc + dc_coeff * amp
         amp = amp - dc
     if abs(amp) > amp_max:
         amp_max = abs(amp)
-    if is_negative and (amp > 0):
-        if (amp_max > amplitude_threshold): 
-            if ((t - last_t)/framerate >= width0_threshold) and ((t - last_t)/framerate < width1_threshold):
-                if is_in_bit0:
-                    write_bit(0)
-                    is_in_bit0 = False
-                else:
-                    if not is_in_block:
-                        start_block_t = last_t
-                    is_in_bit0 = True
-            elif ((t - last_t)/framerate >= width1_threshold) and ((t - last_t)/framerate < width2_threshold):
-                if not is_in_bit0:
-                    if not is_in_block:
-                        start_block_t = last_t
-                    write_bit(1)
-                else:
-                    is_in_block = False
-                is_in_bit0 = False
+    if u26b_q == 0:
+        u25a_q = 0
+    if (was_negative and (amp >= 0)) or ((not was_negative) and (amp < 0)):
+        if first_transition:
+            last_t = t 
+            first_transition = False
+        if (amp_max >= amplitude_threshold): 
+            if u26b_q == 1:
+                u25a_q = 1 - u25a_q
             else:
-                is_in_block = False
+                u26b_q = 1
+                u26b_t = t
         else:
             is_in_block = False
-        last_t = t
-        is_negative = False
+            first_transition = True
         amp_max = 0
-    if amp < 0:
-        is_negative = True        
+    if (u26b_q == 1) and ((t - u26b_t)/framerate >= u26b_width):
+        u26b_q = 0
+        u25b_q = 1 - u25b_q
+        if u25b_q == 1:
+            if not is_in_block:
+                start_block_t = last_t
+            write_bit(1 - u25a_q)
+            first_transition = True
+    was_negative = (amp < 0)
 
 if last_end_t >= 0:
     print(last_end_t / framerate, file = cfg_file)

@@ -9,10 +9,17 @@ Python scripts for manipulating cassette tape data (etc.) for CyberVision 2001.
   - [Recovering data](#recovering-data)
   - [A sample program](#a-sample-program)
 
+Some information. 
+
+  - [Schematics](schematics.md)
+
 ## Decompose Cassette
 
 "cybervision_decompose_cassette.py"
 decomposes a wav file into an audio track (if any), a series of text files and a configuration file. 
+
+"cybervision_decompose_cassette_new.py" is based on my analysis of the hardware. 
+Unfortunately, it is currently not so good at reading the data. 
 
 
 ### Usage
@@ -23,6 +30,7 @@ python cybervision_decompose_cassette.py [-i] (basename)
 
 This reads ```(basename).wav``` and outputs a number of files. 
 With "-i" option, the phase is inverted. 
+See the beginning of the script for other options. 
 
 If the wav file is stereo (i.e. has 2 channels), 
 the left track is output as ```(basename)_audio.wav```.
@@ -59,6 +67,7 @@ python cybervision_compose_cassette.py (basename)
 Reads the configuration file ```(basename).cfg``` and create ```(basename)_out.wav``` 
 according to the configuration file. 
 
+Prints out the line currently being processed. 
 
 
 ## Configuration file
@@ -121,6 +130,21 @@ and writes the binary to ```(basename).bin```.
 Another output is a text file ```(basename)_split.txt```, 
 which is given by adding a newline before each start bit. 
 
+## Strings
+
+### Usage
+
+```
+python cybervision_strings.py [-p] [-a] [-A] (filename)
+```
+
+Prints strings in a binary file. 
+A character is an even byte between 0x0 and 0x4E. 
+Consecutive character codes terminated by 0x88 are regarded as a string and is printed. 
+
+With "-p", treat the file as a program and read the header to set address. 
+With "-a", print all strings of characters of length >=2 that may not end with 0x88. 
+With "-A", print all characters. 
 
 
 ## Recovering data
